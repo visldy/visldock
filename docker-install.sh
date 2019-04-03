@@ -33,6 +33,6 @@ apt-get install -y nvidia-docker2
 pkill -SIGHUP dockerd
 
 # Copy visldock.sh to /usr/bin
-./visldock.sh -c
+./visldock.sh setup -c
 
 echo 'Please restart PC!'
