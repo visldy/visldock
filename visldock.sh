@@ -7,7 +7,7 @@ app_name=visldock
 
 repository="visldy/"
 image_name="visldock"
-version_name="v1.1"
+version_name="v1.2"
 
 container_name="visldock"
 
@@ -15,7 +15,7 @@ main_cli() {
     ## Parse args
     ## ==========
     usage() {
-        echo "A CLI tool for working with the visldock docker"
+        echo "A CLI tool for working with the $app_name docker"
         echo ""
         echo "usage: $app_name  <command> [<options>]"
         echo "   or: $app_name -h         to print this help message."
@@ -182,11 +182,15 @@ run_cli() {
         ## No display
         connect_to_x_server=false
     fi
-    userstring="$(whoami):$(id -u):$(id -gn):$(id -g)"
+    if [[ "$(whoami)" == "root" ]]; then
+        userstring="dockuser:4283:dockuser:4283"
+    else
+        userstring="$(whoami):$(id -u):$(id -gn):$(id -g)"
+    fi
     map_host=true
     detach_container=false
     home_folder=""
-    command_to_run="default_cmd"
+    command_to_run=""
     extra_args=""
     if nvidia-smi >& /dev/null ; then 
         use_nvidia_runtime=true
@@ -204,6 +208,7 @@ run_cli() {
         echo "    -f home_folder          A folder to map as the dockuser's home folder."
         echo "    -s                      Run the command as root."
         echo "    -u                      Run the command as dockuser user."
+        echo "    -i username             Run the command as *username*."
         echo "    -x                      Don't connect X-server"
         echo "    -r                      Don't map the root folder on the host machine to /host inside the container."
         echo "    -d                      Detach the container."
@@ -215,7 +220,7 @@ run_cli() {
         exit 0
     fi
 
-    while getopts "v:c:f:suxrde:" opt; do
+    while getopts "v:c:f:sui:xrde:" opt; do
         case $opt in
             v)
                 version_name=$OPTARG
@@ -231,6 +236,10 @@ run_cli() {
                 ;;
             u)
                 userstring="dockuser:4283:dockuser:4283"
+                ;;
+            i)
+                username=$OPTARG
+                userstring="$username:$(id -u $username):$(id -gn $username):$(id -g $username)"
                 ;;
             x)
                 connect_to_x_server=false
@@ -258,6 +267,8 @@ run_cli() {
     done
     shift $((OPTIND -1))
 
+    userstring="${userstring// /-}"
+
     if [ "$#" -gt 0 ]; then
         command_to_run=( "$@" )
     fi
@@ -267,9 +278,8 @@ run_cli() {
 }
 
 exec_cli() {
-    username="$(whoami)"
     extra_args=""
-    command_to_run="tmux attach-session -t session1"
+    command_to_run="bash"
     usage () {
         echo "Execute a command inside an existing container"
         echo ""
@@ -277,7 +287,6 @@ exec_cli() {
         echo "   or: $app_name $subcommand -h    to print this help message."
         echo "Options:"
         echo "    -c container_name       The name to for the created container. default: \"$container_name\""
-        echo "    -u username             The user to use for running the command. default: \"$username\""
         echo "    -e extra_args           Extra arguments to pass to the docker exec command."
     }
 
@@ -290,9 +299,6 @@ exec_cli() {
         case $opt in
             c)
                 container_name=$OPTARG
-                ;;
-            u)
-                username=$OPTARG
                 ;;
             e)
                 extra_args=$OPTARG
@@ -325,12 +331,33 @@ stop_cli() {
         echo ""
         echo "usage: $app_name $subcommand"
         echo "   or: $app_name $subcommand -h    to print this help message."
+        echo "Options:"
+        echo "    -c container_name       The name to for the created container. default: \"$container_name\""
     }
 
     if [ "$#" -eq 1 ] && [ "$1" ==  "-h" ]; then
         usage
         exit 0
     fi
+
+    while getopts "c:u:e:" opt; do
+        case $opt in
+            c)
+                container_name=$OPTARG
+                ;;
+            :)
+                echo "Error: -$OPTARG requires an argument" 1>&2
+                usage
+                exit 1
+                ;;
+            \?)
+                echo "Error: unknown option -$OPTARG" 1>&2
+                usage
+                exit 1
+                ;;
+        esac
+    done
+    shift $((OPTIND -1))
 
     if [ "$#" -gt 0 ]; then
         echo "Error: Unexpected arguments: $@" 1>&2
@@ -390,11 +417,19 @@ run_command() {
         extra_args="$extra_args -v /:/host/"
     fi
 
-    if [[ ! -z $home_folder && ! -z $userstring ]]; then
+    if [[ ! -z $userstring ]]; then
         userstringsplit=(${userstring//:/ })
         new_username=${userstringsplit[0]}
 
-        extra_args="$extra_args -v $(readlink -f $home_folder):/home/$new_username/"
+        extra_args="$extra_args -e \"USERSTRING=$userstring\" --label new_username=$new_username"
+
+        if [[ ! -z $home_folder ]]; then
+            if [[ "$new_username" == "root" ]]; then
+                extra_args="$extra_args -v $(readlink -f $home_folder):/root/"
+            else
+                extra_args="$extra_args -v $(readlink -f $home_folder):/home/$new_username/"
+            fi
+        fi
     fi
 
     if [ "$detach_container" = true ]; then
@@ -407,27 +442,38 @@ run_command() {
         extra_args="$extra_args --runtime=nvidia"
     fi
 
-    ${docker_sudo_prefix}docker run \
-        --rm \
-        --network host \
-        --name $container_name \
-        -e USERSTRING=$userstring \
-        $extra_args \
-        $repository$image_name:$version_name "${command_to_run[@]}"
+    if [[ ! -z "$command_to_run" ]]; then
+        eval "${docker_sudo_prefix}docker run" \
+            "--rm" \
+            "--network host" \
+            "--name $container_name" \
+            "$extra_args" \
+            "$repository$image_name:$version_name \"\${command_to_run[@]}\""
+    else
+        eval "${docker_sudo_prefix}docker run" \
+            "--rm" \
+            "--network host" \
+            "--name $container_name" \
+            "$extra_args" \
+            "$repository$image_name:$version_name"
+    fi
 }
 
 exec_command() {
-    if [[ ! -z $username ]]; then
-        extra_args="$extra_args -u $username"
+    # new_username=$(${docker_sudo_prefix}docker inspect $container_name | jq -r '.[0]["Config"]["Labels"]["new_username"]')
+    # if [[ "$new_username" != "null" ]]; then
+    new_username=$(${docker_sudo_prefix}docker inspect $container_name | sed -n 's/^[[:space:]]*"new_username":[[:space:]]*"\(.*\)"$/\1/p')
+    if [[ ! -z "$new_username" ]]; then
+        extra_args="$extra_args -u $new_username -w /home/$new_username"
     fi
 
-    ${docker_sudo_prefix}docker exec -it $extra_args $container_name $command_to_run
+    ${docker_sudo_prefix}docker exec -it $extra_args $container_name "${command_to_run[@]}"
 }
 
 
 stop_container() {
     echo "-> Stopping the container"
-    docker stop $container_name
+    ${docker_sudo_prefix}docker stop $container_name
 }
 
 main_cli "$@"

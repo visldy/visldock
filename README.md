@@ -1,4 +1,4 @@
-# VISL-Dock
+# ML-Dock
 
 A fully featured computer vision / machine learning development environment inside a Docker image.
 
@@ -38,14 +38,14 @@ using the -x flag when running commands.
 For a more detailed documentation then this readme see the docs folder.
 
 ## Dependencies
-- Docker
-- NVIDIA drivers of version 418 or higher
-- NVIDIA-Docker
+- [Docker](https://www.docker.com/)
+- NVIDIA drivers of version 384.81 or higher
+- [NVIDIA-Docker](https://github.com/NVIDIA/nvidia-docker)
 
 For setting these dependencies see the "*Installing dependencies*" section in documentation.
 
 ## Setup
-A part from the above dependencies, the only necessary tool for using the *visldock* CLI is the *visldock.sh* file.
+A part from the above dependencies, the only necessary tool for using the *mldock* CLI is the *mldock.sh* file.
 (The docker image itself is pulled from DockerHub on first usage). To download the file from github (along with
 the rest of the repository) use:
 ``` bash
@@ -82,7 +82,7 @@ Use visldock <command> -h for specific help on each command.
 ## Examples
 To simply start a disposable container running a simple bash shell, run:
 ```bash
-visldock run bash
+visldock run
 ```
 
 ---
@@ -91,25 +91,32 @@ In most cases you would probably want to keep our home folder consistent between
 *-f {folder to use as home folder}* flag. If a non existing or empty folder is given, then it is initialized with
 some initial home folder content. 
 
-For example, to run PyCharm inside a container using the folder *~/visldock_home* as a permanent home folder run:
+For example, to run a container using the folder *~/docker_home* as a permanent home folder run:
 ```bash
-visldock run -f ~/visldock_home pycharm
+visldock run ~/docker_home
 ```
-You can even use your regular home folder for inside the container.
+You can even use your regular home folder for the home folder inside the container.
 
 ---
 
-The image come with a default command which starts Jupyter notebook and JupyterLab (in a tmux session). To
-run it simply run the container without any command:
+You can run any command directly with going through bash by adding it to the run command. For example, to 
+run PyCharm inside a container run:
 ```bash
-visldock run -f ~/visldock_home
+visldock run ~/docker_home pycharm
 ```
 
 ---
 
-To run the container it in the background use the detach flag *-d*.
+To open run the default Jupyter Notebook server using the preconfigured command (see below), run:
 ```bash
-visldock run -d -f ~/visldock_home
+visldock run ~/docker_home default_notebook
+```
+
+---
+
+You can run a container it in the background by using the detach flag *-d*.
+```bash
+visldock run -d ~/docker_home
 ```
 
 And to stop a detach container run:
@@ -119,10 +126,8 @@ visldock stop
 
 ---
 
-You can also run command on an existing container (for example a container with is currently running a notebook
-server) using the *exec* command.
-
-For example, to open VSCode in an existing container run:
+You can also run a command on an existing container using the *exec* command.  For example, to open VSCode 
+in an existing container, run:
 ```bash
 visldock exec code
 ```
@@ -136,8 +141,14 @@ the *-s* to use *root* user.
 machine so that you could easily share file between the container and the host machine. To disable this mapping
 use the *-r* flag.
 
-- You can override the default command be placing a script file  in the folder which is used as the
-container's home folder, and naming it *visldock_default_cmd.sh*.
+- You can set a default run command (instead of opening bash) by placing a script file named *deafult_cmd.sh*
+in your home folder (the one used be the container).
 
+
+## Preconfigured commands
+For convenient the docker image comes with a few preconfigured scripts (which are place in the */app/bin* folder):
+- *default-notebook*: Opens Jupyter Notebook at the root directory using port 9900 (without a password nor token)
+- *default-jupyterlab*: Opens Jupyter Lab at the root directory using port 9901 (without a password nor token)
+- *run_server*: Starts Jupyter Notebook and Lab using a tmux session.
 
 Enjoy ;)
