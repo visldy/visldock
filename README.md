@@ -39,7 +39,7 @@ For a more detailed documentation then this readme see the docs folder.
 
 ## Dependencies
 - [Docker](https://www.docker.com/)
-- NVIDIA drivers of version 384.81 or higher
+- NVIDIA drivers of version 418.81 or higher
 - [NVIDIA-Docker](https://github.com/NVIDIA/nvidia-docker)
 
 For setting these dependencies see the "*Installing dependencies*" section in documentation.
