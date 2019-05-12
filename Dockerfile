@@ -18,9 +18,8 @@ RUN apt-get update -y && \
         libxext-dev libxrender1 lmodern netcat pandoc texlive-fonts-extra \
         texlive-fonts-recommended texlive-generic-recommended neovim \
         texlive-latex-base texlive-latex-extra texlive-xetex \
-        graphviz mc nfs-common && \
-    pip install pynvim && \
-    apt-get clean
+        graphviz mc nfs-common apt-utils && \
+    pip install pynvim
 
     ## ToDo: increase memory limit to 10GB in: /etc/ImageMagick-6/policy.xml
 
@@ -45,6 +44,7 @@ RUN cd /tmp && \
     apt-get install apt-transport-https && \
     apt-get update && \
     apt-get install -y code && \
+    apt-get clean && \
     rm microsoft.gpg
 
 ## Install pycharm

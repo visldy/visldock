@@ -1,4 +1,4 @@
-# ML-Dock
+# VISL-Dock
 
 A fully featured computer vision / machine learning development environment inside a Docker image.
 
@@ -39,7 +39,7 @@ For a more detailed documentation then this readme see the docs folder.
 
 ## Dependencies
 - [Docker](https://www.docker.com/)
-- NVIDIA drivers of version 418.81 or higher
+- NVIDIA drivers of version 418 or higher
 - [NVIDIA-Docker](https://github.com/NVIDIA/nvidia-docker)
 
 For setting these dependencies see the "*Installing dependencies*" section in documentation.
@@ -93,7 +93,7 @@ some initial home folder content.
 
 For example, to run a container using the folder *~/docker_home* as a permanent home folder run:
 ```bash
-visldock run ~/docker_home
+visldock run -f ~/docker_home
 ```
 You can even use your regular home folder for the home folder inside the container.
 
@@ -102,21 +102,21 @@ You can even use your regular home folder for the home folder inside the contain
 You can run any command directly with going through bash by adding it to the run command. For example, to 
 run PyCharm inside a container run:
 ```bash
-visldock run ~/docker_home pycharm
+visldock run -f ~/docker_home pycharm
 ```
 
 ---
 
 To open run the default Jupyter Notebook server using the preconfigured command (see below), run:
 ```bash
-visldock run ~/docker_home default_notebook
+visldock run -f ~/docker_home default_notebook
 ```
 
 ---
 
 You can run a container it in the background by using the detach flag *-d*.
 ```bash
-visldock run -d ~/docker_home
+visldock run -d -f ~/docker_home
 ```
 
 And to stop a detach container run:
