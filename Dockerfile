@@ -74,7 +74,7 @@ RUN pip3 install pip && \
         sympy nose sphinx tqdm opencv-contrib-python scikit-image \
         scikit-learn imageio torchvision tensorflow-gpu tensorboardX \
         jupyter jupyterthemes jupyter_contrib_nbextensions jupyterlab \
-        ipywidgets keras pillow topsort && \
+        ipywidgets keras pillow toposort && \
         rm -r /root/.cache/pip
 ENV MPLBACKEND=Agg
 
