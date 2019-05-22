@@ -12,6 +12,7 @@ The image contains:
 - Computer vision and machine learning packages: OpenCV, SciKit-Image, SciKit-learn, etc.
 - Deep learning frameworks: Tensorflow (CPU support only for now) and Torch (+ TorchVision)
 - Jupyter notebook and JupyterLab
+- Anaconda3
 
 For a complete list of packages take a look at the Dockerfile
 
@@ -26,7 +27,7 @@ consistent Docker container.
 The following features are enabled by default (and can be disabled using the appropriate flags):
 - Allowing GUI based applications to run inside the container (mapping the host's X-Server into the container).
 - Using the same user inside the Docker container as the user on the host machine (along with it's uid and gid).
-- Mapping the entire host file system inside the container (at */host*).
+- Mapping the local user home and data folders inside the container (at */data* & */user*).
 - Sharing all network ports between the container and the host machine (using the *host* network driver)
 - Using a consistent home folder (given a path to a folder on the host machine as an input).
 
@@ -45,7 +46,7 @@ For a more detailed documentation then this readme see the docs folder.
 For setting these dependencies see the "*Installing dependencies*" section in documentation.
 
 ## Setup
-A part from the above dependencies, the only necessary tool for using the *mldock* CLI is the *mldock.sh* file.
+A part from the above dependencies, the only necessary tool for using the *visldock* CLI is the *visldock.sh* file.
 (The docker image itself is pulled from DockerHub on first usage). To download the file from github (along with
 the rest of the repository) use:
 ``` bash
@@ -137,12 +138,20 @@ visldock exec code
 Commands are then executed using this user. You can use the *-u* flag to use a default *dockuser* user instead, or 
 the *-s* to use *root* user.
 
-- By default, the CLI maps the */host* folder inside the container to the root folder (*/*) of the host
+- By default, the CLI maps the */user* folder inside the container to the user home folder (*/home/{username}*)
+& */data* folder inside the container to the user data folder (*/data/{username}*) of the host
 machine so that you could easily share file between the container and the host machine. To disable this mapping
 use the *-r* flag.
 
 - You can set a default run command (instead of opening bash) by placing a script file named *deafult_cmd.sh*
 in your home folder (the one used be the container).
+
+- To run more containers or in case, when another user use a Docker at same machine,
+You can use flag *-c {container name} to run it, for example:
+
+```bash
+visldock run -c my_container -f ~/docker_home {Your command}
+```
 
 
 ## Preconfigured commands

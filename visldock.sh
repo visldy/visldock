@@ -7,7 +7,7 @@ app_name=visldock
 
 repository="visldy/"
 image_name="visldock"
-version_name="v1.2"
+version_name="v1.4"
 
 container_name="visldock"
 
@@ -187,7 +187,7 @@ run_cli() {
     else
         userstring="$(whoami):$(id -u):$(id -gn):$(id -g)"
     fi
-    map_host=true
+    map_data=true
     detach_container=false
     home_folder=""
     command_to_run=""
@@ -210,7 +210,7 @@ run_cli() {
         echo "    -u                      Run the command as dockuser user."
         echo "    -i username             Run the command as *username*."
         echo "    -x                      Don't connect X-server"
-        echo "    -r                      Don't map the root folder on the host machine to /host inside the container."
+        echo "    -r                      Don't map the user data & home folders on the host machine to /user & /data inside the container."
         echo "    -d                      Detach the container."
         echo "    -e extra_args           Extra arguments to pass to the docker run command."
     }
@@ -245,7 +245,7 @@ run_cli() {
                 connect_to_x_server=false
                 ;;
             r)
-                map_host=false
+                map_data=false
                 ;;
             d)
                 detach_container=true
@@ -408,15 +408,6 @@ run_command() {
     #     extra_args="-v /etc/passwd:/etc/passwd -u $(id -u ${USER}):$(id -g ${USER})"
     # fi
 
-    if [ "$connect_to_x_server" = true ]; then
-        xhost +local:root > /dev/null
-        extra_args="$extra_args -e DISPLAY=${DISPLAY} -e MPLBACKEND=Qt5Agg -e QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix:/tmp/.X11-unix"
-    fi
-
-    if [ "$map_host" = true ]; then
-        extra_args="$extra_args -v /:/host/"
-    fi
-
     if [[ ! -z $userstring ]]; then
         userstringsplit=(${userstring//:/ })
         new_username=${userstringsplit[0]}
@@ -429,6 +420,28 @@ run_command() {
             else
                 extra_args="$extra_args -v $(readlink -f $home_folder):/home/$new_username/"
             fi
+        fi
+    fi
+
+    if [ "$connect_to_x_server" = true ]; then
+        xhost +local:root > /dev/null
+        extra_args="$extra_args -e DISPLAY=${DISPLAY} -e MPLBACKEND=Qt5Agg -e QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix:/tmp/.X11-unix"
+        if [ -f /home/$new_username/.Xauthority ]; then
+            if [[ -z "$(ls -A $home_folder)" ]]; then
+                extra_args="$extra_args -v /home/$new_username/.Xauthority:/etc/skel/.Xauthority"
+            else
+                extra_args="$extra_args -v /home/$new_username/.Xauthority:/home/$new_username/.Xauthority"
+            fi
+        fi
+    fi
+
+    if [ "$map_data" = true ]; then
+        extra_args="$extra_args -v /media:/media/"
+        if [ -d /home/$new_username ]; then
+            extra_args="$extra_args -v /home/$new_username:/user/"
+        fi
+        if [ -d /data/$new_username ]; then
+            extra_args="$extra_args -v /data/$new_username:/data/$new_username/"
         fi
     fi
 

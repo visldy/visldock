@@ -17,16 +17,18 @@ RUN apt-get update -y && \
         faac faad x264 python-qt4 python3-pyqt5 imagemagick inkscape jed libsm6 \
         libxext-dev libxrender1 lmodern netcat pandoc texlive-fonts-extra \
         texlive-fonts-recommended texlive-generic-recommended neovim \
-        texlive-latex-base texlive-latex-extra texlive-xetex \
-        graphviz mc nfs-common apt-utils && \
+        texlive-latex-base texlive-latex-extra texlive-xetex tzdata \
+        graphviz mc nfs-common apt-utils desktop-file-utils \
+        mercurial subversion libglib2.0-0 && \
     pip install pynvim
 
     ## ToDo: increase memory limit to 10GB in: /etc/ImageMagick-6/policy.xml
 
-## Set locale
-## ==========
+## Set locale and update prompt
+## ============================
 RUN echo "en_US.UTF-8 UTF-8" > /etc/locale.gen && \
-    locale-gen
+    locale-gen && \
+    echo 'export PS1="Docker-"$PS1' >> /etc/skel/.bashrc
 
 ## SSH server
 ## ==========
@@ -46,6 +48,15 @@ RUN cd /tmp && \
     apt-get install -y code && \
     apt-get clean && \
     rm microsoft.gpg
+
+## Install Spark
+## ===============
+#RUN cd /tmp && \
+#    wget -q http://mirrors.ukfast.co.uk/sites/ftp.apache.org/spark/spark-${APACHE_SPARK_VERSION}/spark-${APACHE_SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz && \
+#    echo "E8B7F9E1DEC868282CADCAD81599038A22F48FB597D44AF1B13FCC76B7DACD2A1CAF431F95E394E1227066087E3CE6C2137C4ABAF60C60076B78F959074FF2AD *spark-${APACHE_SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz" | sha512sum -c - && \
+#    tar xzf spark-${APACHE_SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz -C /usr/local --owner root --group root --no-same-owner && \
+#    rm spark-${APACHE_SPARK_VERSION}-bin-hadoop${HADOOP_VERSION}.tgz
+#RUN cd /usr/local && ln -s spark-${APACHE_SPARK_VERSION}-bin-hadoop${HADOOP_VERSION} spark
 
 ## Install pycharm
 ## ===============
@@ -74,17 +85,17 @@ RUN pip3 install pip && \
         sympy nose sphinx tqdm opencv-contrib-python scikit-image \
         scikit-learn imageio torchvision tensorflow-gpu tensorboardX \
         jupyter jupyterthemes jupyter_contrib_nbextensions jupyterlab \
-        ipywidgets keras pillow toposort && \
+        jupyterhub ipywidgets keras pillow toposort tensorflow && \
         rm -r /root/.cache/pip
 ENV MPLBACKEND=Agg
 
 ## Import matplotlib the first time to build the font cache.
-## ---------------------------------------------------------
+## =========================================================
 RUN python3 -c "import matplotlib.pyplot" && \
     cp -r /root/.cache /etc/skel/
 
 ## Setup Jupyter
-## -------------
+## =============
 RUN pip install six && \
     jupyter nbextension enable --py widgetsnbextension && \
     jupyter contrib nbextension install --system && \
@@ -120,17 +131,30 @@ RUN cd /tmp && \
     dpkg -i dumb-init.deb && \
     rm dumb-init.deb
 
+## Install anaconda3
+## =================
+RUN wget https://repo.anaconda.com/archive/Anaconda3-2019.03-Linux-x86_64.sh -O ~/anaconda.sh && \
+    /bin/bash ~/anaconda.sh -b -p /opt/conda && \
+    rm ~/anaconda.sh && \
+    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+    PATH="$PATH:/opt/conda/bin" && \
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> /etc/skel/.bashrc && \
+#    echo "conda activate base" >> /etc/skel/.bashrc && \
+    conda update conda -y && \
+    conda update --all -y && \
+    conda clean -a -y
+
 ## Copy scripts
 ## ============
 RUN mkdir /app/bin && \
     chmod a=u -R /app/bin && \
-    sed -i "s/^\(PATH=\"\)\(.*\)$/\1\/app\/bin\/:\2/g" /etc/environment
-ENV PATH="/app/bin:$PATH"
+    sed -i "s/^\(PATH=\"\)\(.*\)$/\1\/app\/bin\/:\2/g" /etc/environment && \
+    touch /etc/skel/.sudo_as_admin_successful
+ENV PATH="/app/bin:/opt/conda/bin:$PATH"
 COPY /resources/entrypoint.sh /app/bin/run
 COPY /resources/default_notebook.sh /app/bin/default_notebook
 COPY /resources/default_jupyterlab.sh /app/bin/default_jupyterlab
 COPY /resources/run_server.sh /app/bin/run_server
-RUN touch /etc/skel/.sudo_as_admin_successful
 
 ## Create dockuser user
 ## ====================

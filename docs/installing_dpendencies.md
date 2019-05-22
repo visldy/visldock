@@ -28,7 +28,7 @@ sudo apt-get update
 sudo apt-get install -y cuda
 rm cuda_installation.deb
 ```
-Example, installing CUDA 10.0 on Ubnutnu 18.04
+Example, installing CUDA 10.1 on Ubnutnu 18.04
 ``` bash
 cd /tmp
 curl -L wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-repo-ubuntu1804_10.0.130-1_amd64.deb -o cuda_installation.deb
