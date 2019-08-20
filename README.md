@@ -137,7 +137,7 @@ use the *-r* flag.
 in your home folder (the one used be the container).
 
 - To run more containers at same machine,
-You can use flag *-c {container name} to run it, for example:
+You can use flag *-c* {container name} to run it, for example:
 ```bash
 visldock run -c my_container -f ~/docker_home {Your command}
 ```
