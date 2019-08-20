@@ -37,6 +37,9 @@ if [ ! -z "$USERSTRING" ]; then
                 fi
             fi
             useradd --system $home_folder_arg --shell $new_shell -G sudo -g $new_gid -u $new_uid $new_username
+            usermod -aG video $new_username
+            usermod -aG audio $new_username
+            usermod -aG tty $new_username
             echo "$new_username ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/$new_username
             # mkdir /tmp/runtime-$new_username
             # chown $new_username:$new_groupname /tmp/runtime-$new_username

@@ -7,9 +7,9 @@ app_name=visldock
 
 repository="visldy/"
 image_name="visldock"
-version_name="v1.4"
+version_name="v1.7"
 
-container_name="visldock"
+container_name="visldock-$USER"
 
 main_cli() {
     ## Parse args
@@ -203,6 +203,8 @@ run_cli() {
         echo "usage: $app_name $subcommand [<options>] [command]"
         echo "   or: $app_name $subcommand -h    to print this help message."
         echo "Options:"
+        echo "    -p repository           The repository name to use for the build image. Default: \"$repository\""
+        echo "    -g image                The image name to use for the build image. Default: \"$image_name\""
         echo "    -v version_name         The version name to use for the build image. Default: \"$version_name\""
         echo "    -c container_name       The name to for the created container. Default: \"$container_name\""
         echo "    -f home_folder          A folder to map as the dockuser's home folder."
@@ -220,8 +222,14 @@ run_cli() {
         exit 0
     fi
 
-    while getopts "v:c:f:sui:xrde:" opt; do
+    while getopts "p:g:v:c:f:sui:xrde:" opt; do
         case $opt in
+            p)
+                repository=$OPTARG
+                ;;
+            g)
+                image_name=$OPTARG
+                ;;
             v)
                 version_name=$OPTARG
                 ;;
@@ -408,6 +416,7 @@ run_command() {
     #     extra_args="-v /etc/passwd:/etc/passwd -u $(id -u ${USER}):$(id -g ${USER})"
     # fi
 
+# Map home folder
     if [[ ! -z $userstring ]]; then
         userstringsplit=(${userstring//:/ })
         new_username=${userstringsplit[0]}
@@ -423,9 +432,28 @@ run_command() {
         fi
     fi
 
+# Map Matlab
+if [ -d /usr/local/MATLAB ]; then
+   extra_args="$extra_args -v /usr/local/MATLAB:/usr/local/MATLAB"
+fi
+
+# Map .Xauthority
     if [ "$connect_to_x_server" = true ]; then
+       XAUTH=/tmp/.docker.xauth
+       if [ ! -f $XAUTH ]
+          then
+          xauth_list=$(xauth nlist :0 | sed -e 's/^..../ffff/')
+          if [ ! -z "$xauth_list" ]
+             then
+             echo $xauth_list | xauth -f $XAUTH nmerge -
+          else
+             touch $XAUTH
+          fi
+        chmod a+r $XAUTH
+        fi
+        extra_args="$extra_args -e QT_X11_NO_MITSHM=1 -v $XAUTH:$XAUTH -e XAUTHORITY=$XAUTH" \
         xhost +local:root > /dev/null
-        extra_args="$extra_args -e DISPLAY=${DISPLAY} -e MPLBACKEND=Qt5Agg -e QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix:/tmp/.X11-unix"
+        extra_args="$extra_args -e DISPLAY=${DISPLAY} -e MPLBACKEND=Qt5Agg -e QT_X11_NO_MITSHM=1 -v /tmp/.X11-unix:/tmp/.X11-unix:rw --device /dev/dri"
         if [ -f /home/$new_username/.Xauthority ]; then
             if [[ -z "$(ls -A $home_folder)" ]]; then
                 extra_args="$extra_args -v /home/$new_username/.Xauthority:/etc/skel/.Xauthority"
@@ -435,6 +463,7 @@ run_command() {
         fi
     fi
 
+# Map data folders
     if [ "$map_data" = true ]; then
         extra_args="$extra_args -v /media:/media/"
         if [ -d /home/$new_username ]; then
@@ -445,14 +474,63 @@ run_command() {
         fi
     fi
 
+# Detach container
     if [ "$detach_container" = true ]; then
         extra_args="$extra_args -d"
     else
         extra_args="$extra_args -it"
     fi
 
+# Use nVidia
     if [ "$use_nvidia_runtime" = true ]; then
         extra_args="$extra_args --runtime=nvidia"
+    fi
+
+# Map /dev devices
+    if [ -s /dev/usb ]; then
+        extra_args="$extra_args --device=/dev/usb"
+    fi
+    if [ -c /dev/ptmx ]; then
+        extra_args="$extra_args --device=/dev/ptmx"
+    fi
+    if [ -s /dev/input ]; then
+        extra_args="$extra_args --device=/dev/input/"
+    fi
+    if [ -s /dev/pts ]; then
+        extra_args="$extra_args --device=/dev/pts/"
+    fi
+    if [ -s /dev/snd ]; then
+        extra_args="$extra_args --device=/dev/snd"
+    fi
+#    if [ -d /dev/v4l ]; then
+#        extra_args="$extra_args -v /dev/v4l:/dev/v4l/"
+#    fi
+    if [ -s /dev/bus ]; then
+        extra_args="$extra_args --device=/dev/bus/"
+    fi
+    if [ -c /dev/hidraw0 ]; then
+       for hid1 in /dev/hidraw*
+       do
+           extra_args="$extra_args --device=$hid1"
+       done
+    fi
+    if [ -c /dev/hidraw0 ]; then
+       for med1 in /dev/media*
+       do
+           extra_args="$extra_args --device=$med1"
+       done
+    fi
+    if [ -c /dev/tty ]; then
+       for tty1 in /dev/tty*
+       do
+           extra_args="$extra_args --device=$tty1"
+       done
+    fi
+    if [ -c /dev/video0 ]; then
+       for vid1 in /dev/video*
+       do
+           extra_args="$extra_args --device=$vid1"
+       done
     fi
 
     if [[ ! -z "$command_to_run" ]]; then

@@ -86,8 +86,6 @@ To simply start a disposable container running a simple bash shell, run:
 visldock run
 ```
 
----
-
 In most cases you would probably want to keep our home folder consistent between runs. This is done using the
 *-f {folder to use as home folder}* flag. If a non existing or empty folder is given, then it is initialized with
 some initial home folder content. 
@@ -98,22 +96,16 @@ visldock run -f ~/docker_home
 ```
 You can even use your regular home folder for the home folder inside the container.
 
----
-
 You can run any command directly with going through bash by adding it to the run command. For example, to 
 run PyCharm inside a container run:
 ```bash
 visldock run -f ~/docker_home pycharm
 ```
 
----
-
 To open run the default Jupyter Notebook server using the preconfigured command (see below), run:
 ```bash
 visldock run -f ~/docker_home default_notebook
 ```
-
----
 
 You can run a container it in the background by using the detach flag *-d*.
 ```bash
@@ -124,8 +116,6 @@ And to stop a detach container run:
 ```bash
 visldock stop
 ```
-
----
 
 You can also run a command on an existing container using the *exec* command.  For example, to open VSCode 
 in an existing container, run:
@@ -146,13 +136,19 @@ use the *-r* flag.
 - You can set a default run command (instead of opening bash) by placing a script file named *deafult_cmd.sh*
 in your home folder (the one used be the container).
 
-- To run more containers or in case, when another user use a Docker at same machine,
+- To run more containers at same machine,
 You can use flag *-c {container name} to run it, for example:
-
 ```bash
 visldock run -c my_container -f ~/docker_home {Your command}
 ```
 
+To use visldock with different image version, You can use flag -v:
+```bash
+visldock run -v v1.7 -f ~/docker_home
+```
+
+The default version now is "v1.7",
+In case, the project was started early, You can use "v1.4" or "v1.6".
 
 ## Preconfigured commands
 For convenient the docker image comes with a few preconfigured scripts (which are place in the */app/bin* folder):
